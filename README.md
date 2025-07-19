@@ -1,6 +1,6 @@
 # Shunt-Junktec-to-Home-Assistant
 
-# Home Assistant integration of Shunt Junktec KGF with Modbus on rs485 serial port.
+# Home Assistant integration of Shunt Junktec KGF with Modbus Ashii Text String on rs485 serial port.
 
 To make the integration work, you must replace the following values in the code:
 
