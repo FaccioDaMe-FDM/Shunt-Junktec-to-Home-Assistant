@@ -1,0 +1,225 @@
+###   Shunt   ###      Junktec KGF   rs485   ###
+
+input_number:
+  number_ampere_preset:
+    name: Number-Ampere-preset
+    icon: mdi:battery-high
+    min: 0
+    max: 9999
+    initial: 320                          ###   add your real totaly battery capacity   ###
+    step: 0.1
+    mode: box
+    unit_of_measurement: Ah
+
+sensor:
+
+  - platform: tcp
+    name: Shunt-KGF
+    host: 192.178.xxx.xxx                 ###   add converter ip address   ###
+    port: 23xx                            ###   add converter port   ###
+    timeout: 2
+    scan_interval: 2
+    buffer_size: 85 
+    payload: ":R50=1,\r\n"
+
+  - platform: template
+    sensors:
+
+      shunt_kgf_volts:
+        friendly_name:  Battery Monitor - Volts
+        unique_id: shunt_kgf_volts
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[2] ) / 100.0 }}"
+        unit_of_measurement: "V"
+
+      shunt_kgf_amps:
+        friendly_name:  Battery Monitor - Amps
+        unique_id: shunt_kgf_amps
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[3] ) / 100.0 * ( 1.0 if ( states('sensor.shunt_kgf').split(',')[11] == '1' ) else -1.0 ) }}"
+        unit_of_measurement: "A"
+
+      shunt_kgf_direction:
+        friendly_name:  Battery Monitor - Direction
+        unique_id: shunt_kgf_direction
+        value_template: "{{ 'Charging' if ( states('sensor.shunt_kgf').split(',')[11] == '1' ) else 'Discharging' }}"
+
+      shunt_kgf_remaining_capacity:
+        friendly_name:  Battery Monitor - Remaining Capacity
+        unique_id: shunt_kgf_remaining_capacity
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[4] ) / 1000.0 }}"
+        unit_of_measurement: "Ah"
+
+      shunt_kgf_battery_capacity:
+        friendly_name:  Battery Monitor - Elapsed Ah
+        unique_id: shunt_kgf_Ah
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[5] ) / 1000.0 }}"
+        unit_of_measurement: "Ah"
+
+      shunt_kgf_battery_charged:
+        friendly_name:  Battery Monitor - Charged
+        unique_id: shunt_kgf_charged
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[6] ) / 100000.0 }}"
+        unit_of_measurement: "kWh"
+        
+      shunt_kgf_remaining_capacity_percentage:
+        friendly_name:  Battery Monitor - Remaining Capacity Percentage
+        unique_id: shunt_kgf_remaining_capacity_percentage
+        value_template: "{{ int( float( states('sensor.shunt_kgf').split(',')[4] ) / 2800.0 ) }}"
+        unit_of_measurement: "%"
+        
+      shunt_kgf_remaining_capacity_time:
+        friendly_name:  Battery Monitor - Remaining Capacity Time
+        unique_id: shunt_kgf_remaining_capacity_time
+        value_template: "{{ float(states('sensor.shunt_kgf_remaining_capacity')|float(0)) / 10.0 / float(states('sensor.shunt_kgf_amps')|float(0)) }}"
+        unit_of_measurement: "H"
+
+      shunt_kgf_power:
+        friendly_name:  Battery Monitor - Power
+        unique_id: shunt_kgf_power
+        value_template: "{{ float(states('sensor.shunt_kgf_amps')|float(0)) * float(states('sensor.shunt_kgf_volts')|float(0)) }}"
+        unit_of_measurement: "W"
+
+      shunt_kgf_temperature:
+        friendly_name:  Battery Monitor - Temperature
+        unique_id: shunt_kgf_temperature
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[8] ) - 100.0 }}"
+        unit_of_measurement: "C"
+
+      shunt_kgf_power_in:
+        friendly_name:  Battery Monitor - Power IN
+        unique_id: shunt_kgf_power_in
+        unit_of_measurement: "kW"
+        device_class: power
+        value_template: >
+          {% set power = states('sensor.shunt_kgf_amps')|float(0) * states('sensor.shunt_kgf_volts')|float(0) / 1000 %}
+          {% if power >= 0 %}
+            {{ power }}
+          {% else %}
+            0
+          {% endif %}
+        availability_template: "{{ states('sensor.shunt_kgf_amps')|is_number and states('sensor.shunt_kgf_volts')|is_number }}"
+
+      shunt_kgf_power_out:
+        friendly_name:  Battery Monitor - Power OUT
+        unique_id: shunt_kgf_power_out
+        unit_of_measurement: "kW"
+        device_class: power
+        value_template: >
+          {% set power = states('sensor.shunt_kgf_amps')|float(0) * states('sensor.shunt_kgf_volts')|float(0) / 1000 %}
+          {% if power < 0 %}
+            {{ power|abs }}
+          {% else %}
+            0
+          {% endif %}
+        availability_template: "{{ states('sensor.shunt_kgf_amps')|is_number and states('sensor.shunt_kgf_volts')|is_number }}"
+
+## aggiunti da testare ##
+
+      shunt_kgf_internal_resistence:
+        friendly_name: Battery Monitor - Internal Resistence   
+        unique_id: shunt_kgf_internal_resistence  
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[13] ) / 100.0 }}"
+        unit_of_measurement: "mΩ"
+        
+      shunt_kgf_life_hours:
+        friendly_name: Battery Monitor - Life Hours   
+        unique_id: shunt_kgf_life_hours 
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[12] ) / 60.0 }}"
+        unit_of_measurement: "h"
+
+      shunt_kgf_state:
+        friendly_name: Battery Monitor - State
+        unique_id: shunt_kgf_state
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[10] ) }}"
+##  valore state corrispondente: ( 0-ON, 1-OVP, 2-OCP, 3-LVP, 4-NCP, 5-OPP, 6-OTP, 255-OFF )
+
+      shunt_kgf_running_time_hours:
+        friendly_name: Battery Monitor - Time Hours   
+        unique_id: shunt_kgf_running_time_hours 
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[7] ) / 60/60.0 }}"
+        unit_of_measurement: "h"
+
+      shunt_kgf_pending:
+        friendly_name: Battery Monitor - Pending
+        unique_id: shunt_kgf_pending
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[9] ) }}"
+
+      shunt_kgf_checksum:
+        friendly_name: Battery Monitor - checksum
+        unique_id: shunt_kgf_checksum
+        value_template: "{{ float( states('sensor.shunt_kgf').split(',')[1] ) }}"
+
+    # name:
+    #   friendly_name: #(nome visualizzato del sensore)
+    #   unique_id: #(name)
+    #   value_template: "{{ float( states('sensor.Shunt_KGF').split(',')[#address] ) / 100.0 }}"
+    #   unit_of_measurement: "V" 
+
+
+ #- platform: integration
+ #  name: Battery Energy In
+ #  source: sensor.battery_power_in
+ #  method: left
+ #- platform: integration
+ #  name: Battery Energy Out
+ #  source: sensor.battery_power_out
+ #  method: left    
+
+
+# Calculate current power #  per la gioia di Ivano : livello batteria con ampere !!!
+
+      shunt_kgf_current_power:
+        friendly_name: Shunt KGF Current Power
+        unique_id: shunt_kgf_current_power
+        device_class: power
+        value_template: >
+            {% set t = states('sensor.shunt_kgf_direction') | float(0) %}
+            {% if t == 0 %}
+              {{ '%0.1f' | format ( -1 |float * 
+                                    ( 
+                                      states('sensor.shunt_kgf_volts') | float * 
+                                      states('sensor.shunt_kgf_amps') | float 
+                                    )
+                                  )
+              }}
+            {% elif t == 1 %}
+              {{ '%0.1f' | format 
+                              ( 
+                                states('sensor.shunt_kgf_volts') | float * 
+                                states('sensor.shunt_kgf_amps') | float 
+                              )
+              }}
+            {% else %}
+              {{ '%0.1f' | format 
+                              ( 
+                                states('sensor.shunt_kgf_volts') | float * 
+                                states('sensor.shunt_kgf_amps') | float 
+                              )
+              }}              
+            {% endif %}           
+        unit_of_measurement: 'W'
+      
+      shunt_kgf_ampere_consumati:
+        friendly_name: Shunt KGF Ampere Consumati
+        unique_id: shunt_kgf_ampere_consumati
+        value_template: >
+            {% set t = states('sensor.shunt_kgf_direction') | float(0) %}
+            {% if t == 0 %}
+              {{ '%0.1f' | format ( -1 |float * states('sensor.shunt_kgf_amps') | float ) }}
+            {% elif t == 1 %}
+              {{states('sensor.shunt_kgf_amps')|float }}
+            {% else %}
+              {{states('sensor.shunt_kgf_amps')|float }}
+            {% endif %}          
+        unit_of_measurement: 'Ah'
+
+      shunt_kgf_battery_level:
+        friendly_name: Shunt KGF Battery Level
+        unique_id: shunt_kgf_battery_level
+        value_template: >
+          {{ '%0.1f' | format
+                        (
+                          (states('sensor.shunt_kgf_remaining_capacity') | float * 100 ) /
+                          states('input_number.number_ampere_preset') | float
+                        )
+          }}       
+        unit_of_measurement: '%'
